@@ -14,6 +14,10 @@ class GitHubApiError(RuntimeError):
     """Raised when GitHub returns an unsuccessful or malformed response."""
 
 
+class GitHubRateLimitError(GitHubApiError):
+    """Raised when GitHub rejects a request because its API limit was reached."""
+
+
 Transport = Callable[[str, dict[str, str]], Any]
 
 
@@ -76,6 +80,8 @@ class GitHubClient:
                 return json.load(response)
         except urllib.error.HTTPError as error:
             detail = error.read().decode("utf-8", errors="replace")
+            if error.code == 429 or (error.code == 403 and "rate limit" in detail.casefold()):
+                raise GitHubRateLimitError("GitHub API rate limit exceeded") from error
             raise GitHubApiError(f"GitHub API returned HTTP {error.code}: {detail}") from error
         except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
             raise GitHubApiError(f"GitHub API request failed: {error}") from error
