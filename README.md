@@ -56,6 +56,10 @@ issue-scout --query "comments:<5 updated:>2026-01-01" --format csv
 
 By default, Issue Scout checks issue timelines and removes candidates with a linked open pull request. Use `--skip-pr-check` to avoid the extra API calls, or `--include-linked-prs` to keep them with a score penalty.
 
+To stay within GitHub API limits, it checks timelines for only the 20 highest-scoring
+candidates by default. Change that bound with `--pr-check-limit`, or use
+`--show-filtered` to see candidates removed by the score and linked-PR filters.
+
 ## Scoring
 
 | Signal | Points |
