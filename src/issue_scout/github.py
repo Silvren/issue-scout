@@ -28,8 +28,8 @@ class GitHubClient:
             return []
         results: list[IssueCandidate] = []
         page = 1
+        per_page = min(100, limit)
         while len(results) < limit:
-            per_page = min(100, limit - len(results))
             params = urllib.parse.urlencode(
                 {"q": query, "sort": "updated", "order": "desc", "per_page": per_page, "page": page}
             )
