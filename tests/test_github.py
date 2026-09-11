@@ -37,6 +37,31 @@ def test_search_filters_pull_requests_and_sends_token():
     assert urllib.parse.parse_qs(urllib.parse.urlparse(calls[0][0]).query)["q"] == ["is:issue"]
 
 
+def test_search_keeps_page_size_stable_after_filtering_pull_requests():
+    items = [
+        api_issue(1),
+        api_issue(2, pull_request=True),
+        api_issue(3),
+        api_issue(4, pull_request=True),
+        api_issue(5),
+        api_issue(6),
+    ]
+    requested_page_sizes = []
+
+    def transport(url, _headers):
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+        page = int(params["page"][0])
+        per_page = int(params["per_page"][0])
+        requested_page_sizes.append(per_page)
+        start = (page - 1) * per_page
+        return {"items": items[start : start + per_page]}
+
+    issues = GitHubClient(transport=transport).search_issues("is:issue", limit=4)
+
+    assert [issue.number for issue in issues] == [1, 3, 5, 6]
+    assert requested_page_sizes == [4, 4]
+
+
 def test_search_rejects_malformed_response():
     client = GitHubClient(transport=lambda _url, _headers: {"unexpected": []})
     with pytest.raises(GitHubApiError, match="items"):
