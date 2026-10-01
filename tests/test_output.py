@@ -1,4 +1,5 @@
 import csv
+import dataclasses
 import io
 import json
 
@@ -17,6 +18,22 @@ def test_json_output(candidate_factory):
     payload = json.loads(stream.getvalue())
     assert payload[0]["repository"] == "octo/demo"
     assert payload[0]["number"] == 42
+
+
+def test_json_output_is_safe_for_legacy_console_encodings(candidate_factory):
+    stream = io.TextIOWrapper(io.BytesIO(), encoding="cp1252")
+    item = ranked(candidate_factory)
+    item = RankedIssue(
+        issue=dataclasses.replace(item.issue, title="🌍 Find a good first issue"),
+        ranking=item.ranking,
+    )
+
+    render([item], "json", stream=stream)
+    stream.flush()
+    stream.seek(0)
+    payload = json.loads(stream.read())
+
+    assert payload[0]["title"] == "🌍 Find a good first issue"
 
 
 def test_csv_output(candidate_factory):

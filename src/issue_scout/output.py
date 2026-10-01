@@ -47,7 +47,9 @@ def render(
     stream = stream or sys.stdout
     rows = [item.as_row() for item in ranked]
     if format_name == "json":
-        json.dump(rows, stream, indent=2, ensure_ascii=False)
+        # Keep JSON portable across terminals whose text encoding cannot represent
+        # every issue title, such as the default Windows console encoding.
+        json.dump(rows, stream, indent=2, ensure_ascii=True)
         stream.write("\n")
     elif format_name == "csv":
         writer = csv.DictWriter(stream, fieldnames=ROW_FIELDS)
