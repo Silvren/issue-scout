@@ -43,6 +43,26 @@ def test_search_rejects_malformed_response():
         client.search_issues("is:issue")
 
 
+@pytest.mark.parametrize("limit", [1, 100, 101, 150, 250])
+def test_search_pagination_returns_consecutive_issues(limit):
+    items = [api_issue(number) for number in range(1, 301)]
+    calls = []
+
+    def transport(url, _headers):
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+        page = int(params["page"][0])
+        per_page = int(params["per_page"][0])
+        calls.append((page, per_page))
+        start = (page - 1) * per_page
+        return {"items": items[start : start + per_page]}
+
+    issues = GitHubClient(transport=transport).search_issues("is:issue", limit=limit)
+
+    assert [issue.number for issue in issues] == list(range(1, limit + 1))
+    per_page = min(100, limit)
+    assert calls == [(page, per_page) for page in range(1, (limit - 1) // per_page + 2)]
+
+
 def test_linked_open_pull_request(candidate_factory):
     client = GitHubClient(
         transport=lambda _url, _headers: [
